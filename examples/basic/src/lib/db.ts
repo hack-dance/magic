@@ -2,14 +2,15 @@ import { z } from "zod"
 
 const baseModelSchema = z.object({
   id: z.string().uuid(),
-  createdAt: z.date(),
-  updatedAt: z.date()
+  createdAt: z.number(),
+  updatedAt: z.number()
 })
 
-const userSchema = baseModelSchema.extend({
-  name: z.string(),
-  email: z.string().email()
+export const userSchema = baseModelSchema.extend({
+  name: z.string().optional(),
+  email: z.string().email().optional()
 })
+
 export type User = z.infer<typeof userSchema>
 
 const messageSchema = baseModelSchema.extend({
@@ -51,11 +52,13 @@ type DB = ModelInstancesFromSchemas<typeof schemas>
 class Model<T extends z.AnyZodObject> {
   private data: Map<string, z.infer<T>>
   private schema: T
+  private name: string
   private models: Record<string, Model<z.AnyZodObject>> = {}
 
-  constructor({ schema }: { schema: T }) {
+  constructor({ schema, name }: { schema: T; name: string }) {
     this.data = new Map()
     this.schema = schema
+    this.name = name
   }
 
   _inferModels(db: DB) {
@@ -79,9 +82,18 @@ class Model<T extends z.AnyZodObject> {
     }
   }
 
+  public upsert({ id, data }: { id?: string; data: Partial<z.infer<T>> }) {
+    if (id && this.data.has(id)) {
+      return this.update({ id, data })
+    }
+
+    return this.create({ data: { ...data, id } })
+  }
+
   public create({ data }: { data: Omit<z.infer<T>, "id" | "createdAt" | "updatedAt"> }) {
     const id = crypto.randomUUID()
-    const now = new Date()
+    const now = new Date().valueOf()
+
     const validatedData = this.schema.parse({
       ...data,
       id,
@@ -89,14 +101,18 @@ class Model<T extends z.AnyZodObject> {
       updatedAt: now
     })
 
-    for (const key in validatedData) {
+    if (!validatedData) {
+      throw new Error(`Failed to create record for ${this.name}`)
+    }
+
+    for (const key in data) {
       if (key.endsWith("Ref") || key.endsWith("Refs")) {
         const modelName = key.slice(0, -3)
         const model = this.models[modelName]
         if (model) {
-          const refId = validatedData[key as keyof typeof validatedData as string]
+          const refId = data[key as keyof typeof data as string]
           if (Array.isArray(refId)) {
-            for (const id of refId) {
+            for (const id of refId as string[]) {
               if (!model.exists(id)) {
                 throw new Error(`Invalid reference: ${modelName} with id ${id} does not exist`)
               }
@@ -108,9 +124,14 @@ class Model<T extends z.AnyZodObject> {
       }
     }
 
-    this.data.set(id, validatedData)
+    this.data.set(id, {
+      ...data,
+      id,
+      createdAt: now,
+      updatedAt: now
+    })
 
-    return validatedData as z.infer<T>
+    return this.data.get(id) as z.infer<T>
   }
 
   public getMany<I extends IncludeSchema<T>>({
@@ -218,10 +239,12 @@ class Model<T extends z.AnyZodObject> {
     const updatedData = this.schema.parse({
       ...existingData,
       ...data,
-      updatedAt: new Date()
+      updatedAt: new Date().valueOf()
     })
+
     this.data.set(id, updatedData)
-    return updatedData
+
+    return this.data.get(id)
   }
 
   delete({ id }: { id: string }) {
@@ -232,9 +255,9 @@ class Model<T extends z.AnyZodObject> {
 }
 
 const dbInstance: DB = {
-  user: new Model({ schema: userSchema }),
-  message: new Model({ schema: messageSchema }),
-  conversation: new Model({ schema: conversationSchema })
+  user: new Model({ schema: userSchema, name: "user" }),
+  message: new Model({ schema: messageSchema, name: "message" }),
+  conversation: new Model({ schema: conversationSchema, name: "conversation" })
 }
 
 Object.values(dbInstance).forEach(model => {

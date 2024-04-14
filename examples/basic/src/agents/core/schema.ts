@@ -30,7 +30,12 @@ export const CORE_AGENT_ACTIONS = {
 
 export const updateUserParams = z.object({
   action: z.literal(CORE_AGENT_ACTIONS.UPDATE_USER_DATA),
-  data: z.record(z.string(), z.any()).describe("user properties to update or add")
+  data: z
+    .object({
+      name: z.string().optional(),
+      email: z.string().optional()
+    })
+    .describe("new properties to add or update on the user record. ")
 })
 
 export const searchWikipediaParams = z.object({
@@ -58,9 +63,10 @@ export type ActionParams = {
   : never
 }
 
-export type ActionHandler<T extends keyof typeof CORE_AGENT_ACTIONS> = (
-  params: Omit<ActionParams[T], "action"> & { userId: string }
-) => Promise<unknown>
+export type ActionHandler<T extends keyof typeof CORE_AGENT_ACTIONS> = (params: {
+  userId: string
+  data: Omit<ActionParams[T], "action">
+}) => Promise<unknown>
 
 export const actionDefinitions = {
   [CORE_AGENT_ACTIONS.UPDATE_USER_DATA]: {
@@ -69,32 +75,29 @@ export const actionDefinitions = {
       userId
     }: {
       userId: string
-      data: z.infer<typeof updateUserParams>["data"]
-    }) {
-      return await db.user.update({ id: userId, data })
-    },
-    description: "Persist any new information about the user to the database.",
-    sideEffect: true,
-    example: `
-      [user]: oh my email is dimitri@sick.email;
-      //assistant response: 
-      {
-        content: "great, thank you",
-        action: UPDATE_USER_DATA,
-        actionParams: {
-          email: "dimitri@sick.email"
-        }
+      data: {
+        data: z.infer<typeof updateUserParams>["data"]
       }
-    `
+    }) {
+      return await db.user.upsert({ id: userId, data: data.data })
+    },
+    description: "Persist any new information you can about the user to the database.",
+    sideEffect: true,
+    example: ``
   },
   [CORE_AGENT_ACTIONS.SEARCH_WIKIPEDIA]: {
-    handler: async function ({ query }: { query: z.infer<typeof searchWikipediaParams>["query"] }) {
+    handler: async function ({
+      data
+    }: {
+      data: {
+        query: z.infer<typeof searchWikipediaParams>["query"]
+      }
+      userId: string
+    }) {
       const response = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json`
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(data.query)}&format=json`
       )
-      const data = await response.json()
-
-      return data as WikipediaSearchResult
+      return (await response.json()) as WikipediaSearchResult
     },
     sideEffect: false,
     description: "Fetch relevant information from Wikipedia API to help answer the users request.",

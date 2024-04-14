@@ -22,13 +22,17 @@ type RagResult = {
 
 type MagicFlowInputParams<T extends Logger> = {
   prompt: string
-  conversationId: string
   logger: T
 }
 
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-async function main<T extends Logger>(inputParams: MagicFlowInputParams<T>, db: typeof dbInstance) {
+async function main<T extends Logger>(
+  inputParams: MagicFlowInputParams<T> & {
+    userId: string
+    conversationId: string
+  },
+  db: typeof dbInstance
+) {
   const logger = inputParams.logger
 
   async function queryVectorDb(_query: string): Promise<RagResult[]> {
@@ -185,14 +189,14 @@ async function main<T extends Logger>(inputParams: MagicFlowInputParams<T>, db: 
     const handler = actionDefinition.handler as ActionHandler<typeof action>
 
     const result = await handler({
-      ...actionParams,
-      userId: "abc123"
+      data: actionParams,
+      userId: inputParams.userId
     })
 
     logger.log({
       group: "actions",
       log: `Action handlers completed.`,
-      step: `Action ${action} called successfully.`,
+      step: `Action ${action} called successfully. \n result: ${JSON.stringify(result, null, 2)}`,
       type: "success"
     })
 
@@ -207,6 +211,15 @@ async function main<T extends Logger>(inputParams: MagicFlowInputParams<T>, db: 
     group: "magic",
     log: "This magic is about to begin...",
     type: "success"
+  })
+
+  await db.message.create({
+    data: {
+      conversationRef: inputParams.conversationId,
+      content: inputParams.prompt,
+      role: "user",
+      userRef: inputParams.userId
+    }
   })
 
   const messages = await getContextMessages(inputParams)
@@ -241,12 +254,44 @@ async function main<T extends Logger>(inputParams: MagicFlowInputParams<T>, db: 
 
 export class Magic<T extends Logger> {
   private db: typeof dbInstance
+  private conversationId: string | null
+  private userId: string | null
 
   constructor() {
     this.db = dbInstance
+    this.conversationId = null
+    this.userId = null
+
+    this.setup()
+  }
+
+  async setup() {
+    const conversation = await this.db.conversation.create({
+      data: {
+        messageRefs: []
+      }
+    })
+
+    const user = await this.db.user.create({
+      data: {}
+    })
+
+    if (!conversation || !user) {
+      throw new Error("Failed to initialize")
+    }
+
+    this.conversationId = conversation.id
+    this.userId = user.id
   }
 
   async run(inputParams: MagicFlowInputParams<T>) {
-    await main(inputParams, this.db)
+    await main(
+      {
+        ...inputParams,
+        userId: this.userId ?? "",
+        conversationId: this.conversationId ?? ""
+      },
+      this.db
+    )
   }
 }

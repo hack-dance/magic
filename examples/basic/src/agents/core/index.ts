@@ -19,7 +19,7 @@ export const coreAgent = createAgent({
   config: {
     model: "gpt-4-turbo",
     max_tokens: 650,
-    temperature: 0.1,
+    temperature: 0.9,
     messages: [{ role: "system", content: primaryIdentity }]
   },
   response_model: {

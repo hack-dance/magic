@@ -6,7 +6,7 @@ import prompts from "prompts"
 const logger = new CliLogger()
 const magic = new Magic<typeof logger>()
 
-async function ask(conversationId: string) {
+async function ask() {
   try {
     const question = await prompts({
       message: "Ask me anything...",
@@ -20,12 +20,12 @@ async function ask(conversationId: string) {
       return process.exit(0)
     }
 
-    await magic.run({ conversationId, prompt: question.prompt, logger })
+    await magic.run({ prompt: question.prompt, logger })
     logger.end()
 
     console.log("\n\n")
 
-    await ask(conversationId)
+    await ask()
   } catch (error) {
     console.error("An error occurred:", error)
     process.exit(1)
@@ -33,8 +33,7 @@ async function ask(conversationId: string) {
 }
 
 async function main() {
-  const conversationId = crypto.randomUUID()
-  await ask(conversationId)
+  await ask()
 }
 
 process.on("SIGTERM", () => {
