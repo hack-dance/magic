@@ -1,52 +1,35 @@
 #! /usr/bin/env bun
-import ora from "ora"
+import { CliLogger } from "@common/logger/cli-logger"
+import { Magic } from "@examples/basic/src"
 import prompts from "prompts"
 
-import { magic } from "../../examples/basic/src/index.ts"
-
-const spinner = ora()
-let spinnerType: string | undefined = undefined
-
-async function cb({
-  content,
-  type,
-  shouldEnd = false
-}: {
-  content: string
-  type: string
-  shouldEnd: boolean
-}) {
-  if (shouldEnd) {
-    spinner.succeed()
-    spinner.stop()
-
-    return
-  }
-
-  if (type && type !== spinnerType && spinnerType !== undefined) {
-    spinner.succeed()
-
-    spinner.prefixText = `[${type}]: `
-    spinner.start()
-  }
-
-  spinner.text = content
-  spinnerType = type
-}
+const logger = new CliLogger()
+const magic = new Magic<typeof logger>()
 
 async function ask(conversationId: string) {
-  const question = await prompts({ message: "Whats up?", type: "text", name: "prompt" })
-  spinner.start()
-  await magic(
-    {
-      conversationId,
-      prompt: question.prompt
-    },
-    cb
-  )
+  try {
+    const question = await prompts({
+      message: "Ask me anything...",
+      type: "text",
+      name: "prompt"
+    })
 
-  spinner.stop()
-  await ask(conversationId)
+    if (!question.prompt) {
+      console.log("Exiting...")
+      logger.end()
+      return process.exit(0)
+    }
+
+    await magic.run({ conversationId, prompt: question.prompt, logger })
+    logger.end()
+
+    console.log("\n\n")
+
+    await ask(conversationId)
+  } catch (error) {
+    console.error("An error occurred:", error)
+    process.exit(1)
+  }
 }
 
 async function main() {
@@ -54,4 +37,27 @@ async function main() {
   await ask(conversationId)
 }
 
-main()
+process.on("SIGTERM", () => {
+  console.log("Exiting...")
+  process.exit(0)
+})
+
+process.on("SIGINT", () => {
+  console.log("Exiting...")
+  process.exit(0)
+})
+
+process.on("uncaughtException", error => {
+  console.error("Uncaught Exception:", error)
+  process.exit(1)
+})
+
+process.on("unhandledRejection", reason => {
+  console.error("Unhandled Rejection:", reason)
+  process.exit(1)
+})
+
+main().catch(error => {
+  console.error("An error occurred in the main function:", error)
+  process.exit(1)
+})

@@ -6,12 +6,11 @@ import {
   CORE_AGENT_ACTIONS,
   coreAgentSchema
 } from "@/agents/core/schema"
+import { type Logger } from "@common/logger/types"
 import OpenAI from "openai"
 import { z } from "zod"
 
-import { db, Message } from "@/lib/db"
-
-import { logger } from "./lib/logger"
+import { db as dbInstance, Message } from "@/lib/db"
 
 type RagResult = {
   id: string
@@ -21,161 +20,193 @@ type RagResult = {
   }
 }
 
-type MagicFlowInputParams = {
+type MagicFlowInputParams<T extends Logger> = {
   prompt: string
   conversationId: string
+  logger: T
 }
 
-let clientCB: ({
-  content,
-  type
-}: {
-  content: string
-  type: string
-  shouldEnd: boolean
-}) => void = () => {}
-export function publishToClientStream(content: string, type: string, shouldEnd: boolean) {
-  logger.debug({
-    message: content,
-    content
-  })
+const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-  clientCB({ content, type, shouldEnd })
-}
+async function main<T extends Logger>(inputParams: MagicFlowInputParams<T>, db: typeof dbInstance) {
+  const logger = inputParams.logger
 
-export async function queryVectorDb(query: string): Promise<RagResult[]> {
-  logger.debug({
-    message: "Querying Vector DB",
-    query
-  })
+  async function queryVectorDb(_query: string): Promise<RagResult[]> {
+    await pause(250)
 
-  return [{ id: "1", score: 0.85, payload: { content: "Vector DB result 1" } }]
-}
-
-function resolveContextToUse({
-  conversationMessages,
-  ragResults
-}: {
-  conversationMessages: Message[]
-  ragResults: RagResult[]
-}): OpenAI.ChatCompletionMessageParam[] {
-  logger.debug({
-    message: "Resolving what context to use",
-    conversationMessages,
-    ragResults
-  })
-
-  return [
-    ...conversationMessages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    })),
-    {
-      role: "system",
-      content: `here are the results of the semantic search query: ${JSON.stringify(ragResults)}`
-    }
-  ]
-}
-
-async function getContextMessages({ prompt, conversationId }: MagicFlowInputParams) {
-  logger.debug({
-    message: "Getting context messages",
-    prompt,
-    conversationId
-  })
-
-  const conversationMessages = await db.message.getMany({
-    where: {
-      conversationRef: conversationId
-    }
-  })
-
-  const ragResults = await queryVectorDb(prompt)
-
-  const ctxMessages = resolveContextToUse({
-    conversationMessages,
-    ragResults
-  })
-
-  return [...ctxMessages, { role: "user", content: prompt }] as OpenAI.ChatCompletionMessageParam[]
-}
-
-async function coreAgentCall({
-  messages
-}: {
-  messages: OpenAI.ChatCompletionMessageParam[]
-  isFollowUp?: boolean
-}) {
-  logger.debug({
-    message: "Calling core agent",
-    messages
-  })
-
-  const completionStream = await coreAgent.completionStream({ messages: messages })
-
-  let final = {}
-
-  for await (const partial of completionStream) {
-    publishToClientStream(partial.content ?? "", "assistant", false)
-    final = partial
+    return [{ id: "1", score: 0.85, payload: { content: "Vector DB result 1" } }]
   }
 
-  logger.debug({
-    message: "Core agent call complete",
-    final
-  })
-
-  const complete = final as z.infer<typeof coreAgentSchema>
-
-  return complete
-}
-
-async function handleActions({ completion }: { completion: z.infer<typeof coreAgentSchema> }) {
-  const action = completion.action as keyof typeof CORE_AGENT_ACTIONS
-  const actionParams = completion.actionParams as ActionParams[typeof action]
-
-  if (!action) {
-    publishToClientStream("no action to execute." ?? "", "actions", false)
-    logger.debug({
-      message: "No action to call.."
+  function resolveContextToUse({
+    conversationMessages,
+    ragResults
+  }: {
+    conversationMessages: Message[]
+    ragResults: RagResult[]
+  }): OpenAI.ChatCompletionMessageParam[] {
+    logger.log({
+      group: "context",
+      log: "Resolving context to use",
+      type: "info"
     })
 
-    return
+    return [
+      ...conversationMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      {
+        role: "system",
+        content: `here are the results of the semantic search query: ${JSON.stringify(ragResults)}`
+      }
+    ]
   }
 
-  logger.debug({
-    message: `Calling action ${action}}`,
-    actionParams
-  })
+  async function getContextMessages({
+    prompt,
+    conversationId
+  }: {
+    prompt: string
+    conversationId: string
+  }) {
+    logger.log({
+      group: "context",
+      log: "Getting context for initial call...",
+      type: "start"
+    })
 
-  publishToClientStream(`Calling action ${action}` ?? "", "actions", false)
+    logger.log({
+      group: "context",
+      log: "Fetching conversation messages...",
+      type: "info"
+    })
+    const conversationMessages = await db.message.getMany({
+      where: {
+        conversationRef: conversationId
+      }
+    })
 
-  const actionDefinition = actionDefinitions[action]
-  const handler = actionDefinition.handler as ActionHandler<typeof action>
+    logger.log({
+      group: "context",
+      log: "Fetching semantic search results...",
+      step: `Retrieved ${conversationMessages?.length} messages`,
+      type: "info"
+    })
 
-  const result = await handler({
-    ...actionParams,
-    userId: "abc123"
-  })
+    const ragResults = await queryVectorDb(prompt)
 
-  logger.debug({
-    message: `Action ${action} complete`,
-    result
-  })
+    logger.log({
+      group: "context",
+      log: "Resolving what context to use...",
+      step: "Semantic search query returned 1 result",
+      type: "info"
+    })
+    const ctxMessages = resolveContextToUse({
+      conversationMessages,
+      ragResults
+    })
 
-  if (actionDefinition.sideEffect) {
-    return
+    logger.log({
+      group: "context",
+      log: "Context resolved!",
+      type: "success"
+    })
+    return [
+      ...ctxMessages,
+      { role: "user", content: prompt }
+    ] as OpenAI.ChatCompletionMessageParam[]
   }
 
-  return `The result of the ${action} call is: ${JSON.stringify(result)}`
-}
+  async function coreAgentCall({
+    messages
+  }: {
+    messages: OpenAI.ChatCompletionMessageParam[]
+    isFollowUp?: boolean
+  }) {
+    logger.log({
+      group: "core-agent",
+      log: "Starting core agent stream...",
+      type: "start"
+    })
 
-export async function magic(inputParams: MagicFlowInputParams, cb: typeof clientCB) {
-  clientCB = cb
+    const completionStream = await coreAgent.completionStream({ messages: messages })
 
-  logger.debug({
-    message: "The magic is starting...",
-    inputParams
+    let final: Partial<z.infer<typeof coreAgentSchema>> = {}
+
+    for await (const partial of completionStream) {
+      final = partial
+
+      logger.log({
+        group: "core-agent",
+        stream: true,
+        log: final.content ?? "",
+        type: "info"
+      })
+    }
+
+    const complete = final as z.infer<typeof coreAgentSchema>
+
+    logger.log({
+      group: "core-agent",
+      log: complete.content ?? "",
+      type: "success"
+    })
+
+    return complete
+  }
+
+  async function handleActions({ completion }: { completion: z.infer<typeof coreAgentSchema> }) {
+    const action = completion.action as keyof typeof CORE_AGENT_ACTIONS
+    const actionParams = completion.actionParams as ActionParams[typeof action]
+    logger.log({
+      group: "actions",
+      log: "Handling actions...",
+      step: "Check for actions.",
+      type: "start"
+    })
+
+    if (!action) {
+      logger.log({
+        group: "actions",
+        log: "No action to call...",
+        type: "success"
+      })
+
+      return
+    }
+
+    logger.log({
+      group: "actions",
+      log: `Calling action ${action}...`,
+      type: "info"
+    })
+
+    const actionDefinition = actionDefinitions[action]
+    const handler = actionDefinition.handler as ActionHandler<typeof action>
+
+    const result = await handler({
+      ...actionParams,
+      userId: "abc123"
+    })
+
+    logger.log({
+      group: "actions",
+      log: `Action handlers completed.`,
+      step: `Action ${action} called successfully.`,
+      type: "success"
+    })
+
+    if (actionDefinition.sideEffect) {
+      return
+    }
+
+    return `The result of the ${action} call is: ${JSON.stringify(result)}`
+  }
+
+  logger.log({
+    group: "magic",
+    log: "This magic is about to begin...",
+    type: "success"
   })
 
   const messages = await getContextMessages(inputParams)
@@ -183,11 +214,11 @@ export async function magic(inputParams: MagicFlowInputParams, cb: typeof client
   const actionResult = await handleActions({ completion: agentResponse })
 
   if (actionResult) {
-    logger.debug({
-      message: "Calling core agent with follow up from action"
+    logger.log({
+      group: "magic",
+      log: "The magic continues, with action results...",
+      type: "success"
     })
-
-    publishToClientStream(`Sending action results back to core agent.` ?? "", "follow-up", false)
 
     await coreAgentCall({
       isFollowUp: true,
@@ -199,9 +230,23 @@ export async function magic(inputParams: MagicFlowInputParams, cb: typeof client
     })
   }
 
-  publishToClientStream(`The magic is complete` ?? "", "complete", true)
-
-  logger.debug({
-    message: "The magic is complete!"
+  logger.log({
+    group: "magic",
+    log: "The magic is complete!",
+    type: "success"
   })
+
+  await pause(500)
+}
+
+export class Magic<T extends Logger> {
+  private db: typeof dbInstance
+
+  constructor() {
+    this.db = dbInstance
+  }
+
+  async run(inputParams: MagicFlowInputParams<T>) {
+    await main(inputParams, this.db)
+  }
 }

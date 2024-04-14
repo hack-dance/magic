@@ -2,8 +2,12 @@
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@common/*": ["../common/src/*"],
+      "@examples/*": ["../../examples/*"],
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx", "tests", "turbo"],
+  "include": ["**/*.ts", "**/*.tsx", "tests", "turbo", "../common/src/logger/cli-logger.ts"],
   "exclude": ["node_modules", "dist"]
 }

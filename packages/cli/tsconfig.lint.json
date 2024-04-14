@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "paths": {
-      "@common/*": ["./src/*"]
+      "@common/*": ["../common/src/*"],
+      "@examples/*": ["../../examples/*"]
+      
     },
     "baseUrl": "."
   },
