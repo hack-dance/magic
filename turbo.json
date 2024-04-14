@@ -1,0 +1,31 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "NODE_ENV",
+    "OPENAI_API_KEY",
+    "OPENAI_ORG_ID",
+    "LOG_LEVEL"
+  ],
+  "pipeline": {
+    "start": {},
+    "lint": {},
+    "build": {},
+    "test": {
+      "cache": false,
+      "persistent": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false,
+      "persistent": false
+    },
+    "type-check": {
+      "cache": false,
+      "persistent": false
+    }
+  }
+}

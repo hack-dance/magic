@@ -1,0 +1,15 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "paths": {
+      "@root/*": ["./*"],
+      "@cli/*": ["packages/cli/*"],
+      "@common/*": ["./packages/common/src/*"],
+      "@examples/*": ["../examples/*"],
+    },
+    "baseUrl": "."
+  },
+  "include": ["./*.ts", "packages/cli/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "magic-common",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint --max-warnings 0"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/ramda": "^0.29.12",
+    "rimraf": "^5.0.5"
+  }
+}

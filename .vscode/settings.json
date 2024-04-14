@@ -1,0 +1,83 @@
+{
+  "editor.defaultFormatter": "GitHub.copilot",
+  "editor.tabSize": 2,
+  "editor.formatOnType": false,
+  "editor.formatOnPaste": false,
+  "editor.trimAutoWhitespace": true,
+  "editor.formatOnSave": false,
+  "gopls": { "ui.semanticTokens": true },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true
+  },  
+  "[javascript, javascriptreact, typescript, typescriptreact]": {
+    "editor.formatOnSave": false
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always",
+    "source.fixAll.eslint": "always"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "GitHub.copilot"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.autoIndent": "advanced"
+  },
+  "[yaml]": {
+    "editor.autoIndent": "advanced",
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    "editor.formatOnPaste": true
+  },
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "pattern": "./apps/*"
+    },
+    {
+      "pattern": "./packages/*"
+    },
+    {
+      "pattern": "./public-packages/*"
+    },
+    {
+      "pattern": "./services/*"
+    },
+    {
+      "pattern": "./examples/*"
+    },
+    {
+      "pattern": "./common/*"
+    }
+  ],
+  "eslint.debug": true,
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/release.yml"
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.validate.enable": true,
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "css.validate": false,
+  "editor.inlineSuggest.enabled": true,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
+}

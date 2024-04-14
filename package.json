@@ -1,0 +1,31 @@
+{
+  "name": "magic",
+  "version": "0.0.0",
+  "bin": {
+    "magic": "./packages/cli/index.ts"
+  },
+  "scripts": {
+    "lint": "turbo lint --concurrency=11",
+    "clean": "turbo run clean",
+    "type-check": "turbo type-check --concurrency=11",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:write": "prettier --write \"**/*.{js,json,jsx,ts,tsx}\"",
+    "build": "turbo run build --no-daemon --concurrency=11",
+    "dev": "turbo dev --no-daemon --concurrency=11",
+    "start": "turbo run start",
+    "cli": "bun cli/index.ts"
+  },
+  "workspaces": [
+    "examples/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "prettier": "^3.2.5",
+    "turbo": "latest",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {}
+}

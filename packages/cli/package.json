@@ -1,0 +1,19 @@
+{
+  "name": "magic-cli",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint --max-warnings 0"
+  },
+  "dependencies": {
+    "@types/prompts": "^2.4.9",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/ramda": "^0.29.12",
+    "rimraf": "^5.0.5"
+  }
+}
