@@ -1,6 +1,6 @@
 # M.A.G.I.C
 
-_Just make it more agentic
+Make it more agentic
 
 ---
 
