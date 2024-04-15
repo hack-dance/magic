@@ -14,8 +14,7 @@ MAGIC (Machine-Assisted Generative Intelligence and Coordination) is a framework
 
 The MAGIC framework aims to simplify the process of building and managing complex, LLM-powered automation systems by providing a clear, well-defined structure for agent creation, task delegation, and action execution -- and a long overly-verbose name to avoid any miscommunication.
 
-> This repo serves as an example for how to implement these concepts, there isnt really anything to install or use other then the CLI.
-
+> This repo serves as an example for how to implement these concepts in a very basic way, there isnt anything to install or use other then the CLI. If there is anything useful to you please feel free to copy/paste or use as a reference, whatever. If there is enough interest, I may wrap a few things up into something a bit more structured.
 
 ## Running the examples
 The local examples are stubbed out with fake db and there is a CLI for running a stateful session locally. I like to use bun, but you could use node + npm/pnpm/whatever but will have to run the cli with the direct command using tsnode or something similar.
