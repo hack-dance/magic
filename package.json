@@ -13,7 +13,7 @@
     "build": "turbo run build --no-daemon --concurrency=11",
     "dev": "turbo dev --no-daemon --concurrency=11",
     "start": "turbo run start",
-    "cli": "bun cli/index.ts"
+    "cli": "bun ./packages/cli/index.ts"
   },
   "workspaces": [
     "examples/*",
