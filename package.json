@@ -1,6 +1,22 @@
 {
   "name": "magic",
   "version": "0.0.0",
+    "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hack-dance/magic.git"
+  },
+  "keywords": [
+    "llm",
+    "agents",
+    "openai"
+  ],
+  "author": "Dimitri Kennedy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hack-dance/magic/issues"
+  },
+  "homepage": "https://github.com/hack-dance/magic#readme",
+  
   "bin": {
     "magic": "./packages/cli/index.ts"
   },

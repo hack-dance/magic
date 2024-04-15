@@ -196,7 +196,7 @@ async function main<T extends Logger>(
     logger.log({
       group: "actions",
       log: `Action handlers completed.`,
-      step: `Action ${action} called successfully. \n result: ${JSON.stringify(result, null, 2)}`,
+      step: `Action ${action} called successfully.`,
       type: "success"
     })
 
@@ -204,7 +204,7 @@ async function main<T extends Logger>(
       return
     }
 
-    return `The result of the ${action} call is: ${JSON.stringify(result)}`
+    return `${JSON.stringify(result)}`
   }
 
   logger.log({
@@ -226,6 +226,15 @@ async function main<T extends Logger>(
   const agentResponse = await coreAgentCall({ messages })
   const actionResult = await handleActions({ completion: agentResponse })
 
+  db.message.create({
+    data: {
+      conversationRef: inputParams.conversationId,
+      content: agentResponse.content,
+      role: "assistant",
+      userRef: inputParams.userId
+    }
+  })
+
   if (actionResult) {
     logger.log({
       group: "magic",
@@ -233,13 +242,25 @@ async function main<T extends Logger>(
       type: "success"
     })
 
-    await coreAgentCall({
+    const followUpCompletion = await coreAgentCall({
       isFollowUp: true,
       messages: [
         ...messages,
         { role: "assistant", content: agentResponse.content },
-        { role: "system", content: actionResult }
+        {
+          role: "system",
+          content: `Here are the results of the action you requested - use this to best respond to the user : ${actionResult}`
+        }
       ]
+    })
+
+    db.message.create({
+      data: {
+        conversationRef: inputParams.conversationId,
+        content: followUpCompletion.content,
+        role: "assistant",
+        userRef: inputParams.userId
+      }
     })
   }
 
