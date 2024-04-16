@@ -104,7 +104,7 @@ In a conversational agent scenario, MAGIC would manage dialogue flow, content ge
 
 ## Agentically Automating the Future
 
-With a clear, well-defined and structured approach to agent creation, task delegation, and action execution, MAGIC demonstrates that the power of AI lies not only in lengthy academic papers that obfuscate the trivial behind lots of words and diagrams, but in simple, thoughtful design and implementation of systems that leverage the capabilities of LLMs to solve real-world problems.
+With a clear, well-defined and structured approach to agent creation, task delegation, and action execution, MAGIC demonstrates that the power of simple, thoughtful design and implementation of systems that leverage the capabilities of LLMs to solve real-world problems.
 
 So, as we continue to build agentic systems and ponder the meaning of agency in the context of AI,  let’s remember that success of our "agentic" systems will be measured not by the cleverness of their names , but by their ability to make a difference in the lives of the people they serve. So let’s build with that in mind, and let the results speak for themselves.——
 If you're interested in experimenting with the MAGIC framework or have ideas for how it could be improved, I encourage you to check out the code and share your thoughts. 
